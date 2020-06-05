@@ -1,4 +1,4 @@
-# TinyCandle - Candle Simulation based on ATtiny85
+# NeoCandle - Candle Simulation based on ATtiny85
 Tea light candle simulation using NeoPixels, LDR light sensor and IR remote receiver.
 
 Video: https://youtu.be/n4UFV3BMcBM
