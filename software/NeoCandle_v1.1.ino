@@ -27,9 +27,8 @@
 // No Arduino core functions or libraries are used. Use the makefile if 
 // you want to compile without Arduino IDE.
 //
-// The Neopixel implementation was taken from Josh Levine.
-// https://github.com/bigjosh/SimpleNeoPixelDemo
-// https://wp.josh.com/category/neopixel/
+// The Neopixel implementation was inspired by Josh Levine.
+// http://wp.josh.com/2014/05/11/ws2812-neopixels-made-easy/
 //
 // The simulation code is based on the great work of Mark Sherman.
 // https://github.com/carangil/candle
@@ -71,90 +70,53 @@
 #define LDR_BRIGHT    800     // LDR ADC threshold value for bright
 
 // Auto switch off timer
-#define AUTOTIMER     (6*3600000) // 6 hours
+#define AUTOTIMER     (6*3600000)
 
 // Global variables
 uint32_t timermillis  = 0;    // timer variable for auto switch off
 uint8_t  ldrmode      = 0;    // LDR mode flag: "1" = LDR mode on
 
 // -----------------------------------------------------------------------------
-// Neopixel Implementation (adapted from Josh Levine)
+// Neopixel Implementation (8MHz Clock, 400kHz Pixels) inspired by Josh Levine
 // -----------------------------------------------------------------------------
 
-#define NEO_PIXELS  4             // number of pixels in the string
-#define NEO_PORT    PORTB         // port of the pin the pixels are connected to
-#define NEO_DDR     DDRB          // port of the pin the pixels are connected to
-#define NEO_BIT     NEO_PIN       // bit of the pin the pixels are connected to
-
-#define NEO_T0H     400           // high width of a 0 bit in ns
-#define NEO_T0L     900           // low  width of a 0 bit in ns
-#define NEO_T1H     900           // high width of a 1 bit in ns
-#define NEO_T1L     600           // low  width of a 1 bit in ns
-
-#define NEO_RES     250000        // width of the low gap between bits to cause a frame to latch
-#define NS_PER_SEC (1000000000L)  // this has to be SIGNED!
-#define CYCLES_PER_SEC  (F_CPU)
-#define NS_PER_CYCLE    (NS_PER_SEC / CYCLES_PER_SEC)
-#define NS_TO_CYCLES(n) ((n) / NS_PER_CYCLE)
+#define NEO_PIXELS    4                       // number of pixels in the string
+#define NEO_LATCH()   _delay_us(251)          // delay to show shifted colors
 
 // Initialize Neopixels
 void NEO_init(void) {
-  NEO_DDR |= (1<<NEO_BIT);        // set pixel pin as output
+  DDRB |= (1<<NEO_PIN);                       // set pixel DATA pin as output
 }
 
-// Send a bit to the pixels string
-void NEO_sendBit(uint8_t bitVal) {
-  if (bitVal) {                   // "0"-bit     
-    asm volatile (
-      "sbi %[port], %[bit] \n\t"  // set the output bit
-      ".rept %[onCycles] \n\t"    // execute NOPs to delay exactly the specified number of cycles
-      "nop \n\t"
-      ".endr \n\t"
-      "cbi %[port], %[bit] \n\t"  // clear the output bit
-      ".rept %[offCycles] \n\t"   // execute NOPs to delay exactly the specified number of cycles
-      "nop \n\t"
-      ".endr \n\t"
+// Send a byte to the pixels string (DATA LOW is at least 900ns due to the loop)
+void NEO_sendByte(uint8_t byte) {
+  for(uint8_t bit=8; bit; bit--, byte<<=1) {  // 8 bits, MSB first
+    if(byte & 0x80) asm volatile (            // "1"-bit ?
+      "sbi	%[port], %[bit]   \n\t"           // DATA HIGH
+      "sbi	%[port], %[bit]   \n\t"           // repeat:    2 cycles = 250ns |
+      "lpm                    \n\t"           // delay:     3 cycles = 375ns | ~900ns
+      "cbi	%[port], %[bit]   \n\t"           // DATA LOW:  2 cycles = 250ns |
       ::
-      [port]      "I" (_SFR_IO_ADDR(NEO_PORT)),
-      [bit]       "I" (NEO_BIT),
-      [onCycles]  "I" (NS_TO_CYCLES(NEO_T1H) - 2),  // could be longer and everything would still work
-      [offCycles] "I" (NS_TO_CYCLES(NEO_T1L) - 2)   // probably not needed
-    );                                  
-  }
-  else {                          // "1"-bit
-    asm volatile (
-      "sbi %[port], %[bit] \n\t"  // set the output bit
-      ".rept %[onCycles] \n\t"    // now timing actually matters
-      "nop \n\t"                  // execute NOPs to delay exactly the specified number of cycles
-      ".endr \n\t"
-      "cbi %[port], %[bit] \n\t"  // clear the output bit
-      ".rept %[offCycles] \n\t"   // execute NOPs to delay exactly the specified number of cycles
-      "nop \n\t"
-      ".endr \n\t"
+      [port]  "I" (_SFR_IO_ADDR(PORTB)),
+      [bit]   "I" (NEO_PIN)
+    );
+    else asm volatile (                       // "0"-bit ?
+      "sbi	%[port], %[bit]   \n\t"           // DATA HIGH
+      "nop                    \n\t"           // delay:     1 cycle  = 125ns |
+      "cbi	%[port], %[bit]   \n\t"           // DATA LOW:  2 cycles = 250ns | ~400ns
       ::
-      [port]      "I" (_SFR_IO_ADDR(NEO_PORT)),
-      [bit]       "I" (NEO_BIT),
-      [onCycles]  "I" (NS_TO_CYCLES(NEO_T0H) - 2),
-      [offCycles] "I" (NS_TO_CYCLES(NEO_T0L) - 2)
+      [port]  "I" (_SFR_IO_ADDR(PORTB)),
+      [bit]   "I" (NEO_PIN)
     );
   }
 }
 
-// Send a byte to the pixels string (8 bits, MSB first)
-void NEO_sendByte(uint8_t byte) {
-  for(uint8_t bit=8; bit; bit--, byte<<=1) NEO_sendBit(byte & 0x80);
-}
-
-// Show the shifted colors
-void NEO_show(void) {
-  _delay_us( (NEO_RES / 1000UL) + 1); // wait long enough to cause the pixels to latch
-}
-
+// Switch off all pixels
 void NEO_clear(void) {
   cli();
-  for(uint8_t i=3*NEO_PIXELS; i; i--) NEO_sendByte(0);
+  for(uint8_t i = 3 * NEO_PIXELS; i; i--) NEO_sendByte(0);
   sei();
-  NEO_show();
+  NEO_LATCH();
 }
 
 // -----------------------------------------------------------------------------
@@ -247,7 +209,7 @@ uint8_t IR_read(void) {
   if ((cmd1 + cmd2) < 255) return IR_FAIL;      // if second command byte is not the inverse of the first
   if ((addr1 + addr2) == 255) addr = addr1;     // check if it's extended NEC-protocol ...
   else addr = data;                             // ... and get the correct address
-  if (addr != IR_ADDR) return IR_FAIL;          // valid code was for other device
+  if (addr != IR_ADDR) return IR_FAIL;          // wrong address
   return cmd1;                                  // return command code
 }
 
@@ -379,7 +341,7 @@ int16_t uncalmdir = UNCALMINC;
 uint8_t cnt = 0;
 
 // Set one candle LED
-void setPixel(int16_t val) {
+void setPixel(int val) {
   if (val > 255) val = 255;   
   if (val < 0  ) val = 0;
   uint8_t byte = (uint8_t)val;
@@ -390,8 +352,8 @@ void setPixel(int16_t val) {
 
 // Candle simulation
 void updateCandle() {
-  int16_t movx=0;
-  int16_t movy=0;
+  int movx=0;
+  int movy=0;
     
   // Random trigger brightness oscillation, if at least half uncalm
   if (uncalm > (MAXUNCALM / 2)) {
