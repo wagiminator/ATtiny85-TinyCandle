@@ -92,18 +92,18 @@ void NEO_init(void) {
 void NEO_sendByte(uint8_t byte) {
   for(uint8_t bit=8; bit; bit--, byte<<=1) {  // 8 bits, MSB first
     if(byte & 0x80) asm volatile (            // "1"-bit ?
-      "sbi	%[port], %[bit]   \n\t"           // DATA HIGH
-      "sbi	%[port], %[bit]   \n\t"           // repeat:    2 cycles = 250ns |
+      "sbi  %[port], %[bit]   \n\t"           // DATA HIGH
+      "sbi  %[port], %[bit]   \n\t"           // repeat:    2 cycles = 250ns |
       "lpm                    \n\t"           // delay:     3 cycles = 375ns | ~900ns
-      "cbi	%[port], %[bit]   \n\t"           // DATA LOW:  2 cycles = 250ns |
+      "cbi  %[port], %[bit]   \n\t"           // DATA LOW:  2 cycles = 250ns |
       ::
       [port]  "I" (_SFR_IO_ADDR(PORTB)),
       [bit]   "I" (NEO_PIN)
     );
     else asm volatile (                       // "0"-bit ?
-      "sbi	%[port], %[bit]   \n\t"           // DATA HIGH
+      "sbi  %[port], %[bit]   \n\t"           // DATA HIGH
       "nop                    \n\t"           // delay:     1 cycle  = 125ns |
-      "cbi	%[port], %[bit]   \n\t"           // DATA LOW:  2 cycles = 250ns | ~400ns
+      "cbi  %[port], %[bit]   \n\t"           // DATA LOW:  2 cycles = 250ns | ~400ns
       ::
       [port]  "I" (_SFR_IO_ADDR(PORTB)),
       [bit]   "I" (NEO_PIN)
