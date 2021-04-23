@@ -7,6 +7,16 @@ NeoCandle is a simple tea light candle simulation using 5mm NeoPixels (WS2812), 
 ![NeoCandle_pic1.jpg](https://raw.githubusercontent.com/wagiminator/ATtiny85-TinyCandle/master/documentation/NeoCandle_pic1.jpg)
 
 # Software
+## Candle Simulation
+The simulation code is based on the great work of [Mark Sherman](https://github.com/carangil/candle). With most LED candles, the random flickering is rather dumb and lacks the spooky element of candlelight: shadows cast by the candle move because the flame is in motion. With NeoCandle, four NeoPixels are arranged in a square, the intensity of the four LEDs forms a "center" of light balance that can be moved around smoothly.
+
+This 'physics-based' candlelight has the following properties:
+- The flame has a position and a velocity.
+- If the position is not centered, the velocity will accelerate towards the center in proportion to the displacement (hooke's law of springs).
+- The velocity has a very small damping value, which means that corrections towards the center always overshoot a bit (underdamped system).
+- Random "pushes" into the center position of the light are performed to mimic random drafts.
+- The strength of the drafts changes periodically (alternating periods of calm and windiness).
+
 ## NeoPixel Implementation
 The control of NeoPixels with 8-bit microcontrollers is usually done with software bit-banging. However, this is particularly difficult at low clock rates due to the relatively high data rate of the protocol and the strict timing requirements. The essential protocol parameters for controlling the WS2812 NeoPixels (or similar 800kHz addressable LEDs) can be found in the [datasheet](https://cdn-shop.adafruit.com/datasheets/WS2812.pdf).
 
@@ -59,16 +69,6 @@ This results in a transfer rate of 762 kbps, at least for a single data byte. Th
 
 There are three data bytes for each NeoPixel. These are transmitted in the order green, red and blue with the most significant bit first. The data for the NeoPixel, which is closest to the microcontroller, is output first, then for the next up to the outermost pixel. So this doesn't work like an ordinary shift register! After all color data have been sent, the data line must be kept LOW for at least 9 to 250 µs (depending on the type of NeoPixel) so that the transferred data is latched and the new colors are displayed.
 
-## Candle Simulation Implementation
-The simulation code is based on the great work of [Mark Sherman](https://github.com/carangil/candle). With most LED candles, the random flickering is rather dumb and lacks the spooky element of candlelight: shadows cast by the candle move because the flame is in motion. With NeoCandle, four NeoPixels are arranged in a square, the intensity of the four LEDs forms a "center" of light balance that can be moved around smoothly.
-
-This 'physics-based' candlelight has the following properties:
-- The flame has a position and a velocity.
-- If the position is not centered, the velocity will accelerate towards the center in proportion to the displacement (hooke's law of springs).
-- The velocity has a very small damping value, which means that corrections towards the center always overshoot a bit (underdamped system).
-- Random "pushes" into the center position of the light are performed to mimic random drafts.
-- The strength of the drafts changes periodically (alternating periods of calm and windiness).
-
 ## Pseudo Random Number Generator
 The implementation of the candle simulation requires random numbers for a realistic flickering of the candle. However, the usual libraries for generating random numbers require a relatively large amount of memory. Fortunately, Łukasz Podkalicki has developed a [lightweight random number generator](https://blog.podkalicki.com/attiny13-pseudo-random-numbers/) based on [Galois linear feedback shift register](https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs) for the ATtiny13A, which is also used here, slightly adapted.
 
@@ -93,7 +93,7 @@ The IR receiver implementation is based on [TinyDecoder](https://github.com/wagi
 #define IR_PWROFF     0x02    // IR code for power off
 ```
 
-## Compiling and Uploading
+## Compiling and Uploading the Firmware
 Open the NeoCandle Sketch and adjust the IR codes so that they match your remote control. Remember that only the NEC protocol is supported. If necessary, adjust the values for the LDR light sensor and the switch-off timer.
 
 ### If using the Arduino IDE
