@@ -17,7 +17,7 @@ Fortunately, the timing is nowhere near as strict as the data sheet suggests. Th
 |Pulse|Parameter|Min|Typical|Max|
 |:-|:-|-:|-:|-:|
 |T0H|"0"-Bit, HIGH time|65 ns|350 ns|500 ns|
-|T1H|"1"-Bit, HIGH time|625 ns|700 ns|5000ns|
+|T1H|"1"-Bit, HIGH time|625 ns|700 ns|5000 ns|
 |T0L|"0"-Bit, LOW time|450 ns|800 ns|5000 ns|
 |T1L|"1"-Bit, LOW time|450 ns|600 ns|5000 ns|
 |TCT|Total Cycle Time|1150 ns|1250 ns|5500 ns|
