@@ -28,7 +28,7 @@
 // you want to compile without Arduino IDE.
 //
 // The Neopixel implementation was inspired by Josh Levine.
-// http://wp.josh.com/2014/05/11/ws2812-neopixels-made-easy/
+// https://wp.josh.com/category/neopixel/
 //
 // The simulation code is based on the great work of Mark Sherman.
 // https://github.com/carangil/candle
@@ -77,34 +77,26 @@ uint32_t timermillis  = 0;    // timer variable for auto switch off
 uint8_t  ldrmode      = 0;    // LDR mode flag: "1" = LDR mode on
 
 // -----------------------------------------------------------------------------
-// Neopixel Implementation (8MHz Clock, 800kHz Pixels) inspired by Josh Levine
+// Neopixel Implementation for 8MHz MCU Clock and 800kHz Pixels)
 // -----------------------------------------------------------------------------
 
 #define NEO_PIXELS    4                       // number of pixels in the string
 #define NEO_init()    DDRB |= (1<<NEO_PIN)    // set pixel DATA pin as output
 #define NEO_latch()   _delay_us(251)          // delay to show shifted colors
 
-// Send a byte to the pixels string (DATA LOW is at least 900ns due to the loop)
+// Send a byte to the pixels string
 void NEO_sendByte(uint8_t byte) {
-  for(uint8_t bit=8; bit; bit--, byte<<=1) {  // 8 bits, MSB first
-    if(byte & 0x80) asm volatile (            // "1"-bit ?
-      "sbi  %[port], %[bit]   \n\t"           // DATA HIGH
-      "nop                    \n\t"           // delay:     1 cycle  = 125ns |
-      "lpm                    \n\t"           // delay:     3 cycles = 375ns | ~800ns
-      "cbi  %[port], %[bit]   \n\t"           // DATA LOW:  2 cycles = 250ns |
-      ::
-      [port]  "I" (_SFR_IO_ADDR(PORTB)),
-      [bit]   "I" (NEO_PIN)
-    );
-    else asm volatile (                       // "0"-bit ?
-      "sbi  %[port], %[bit]   \n\t"           // DATA HIGH
-      "nop                    \n\t"           // delay:     1 cycle  = 125ns |
-      "cbi  %[port], %[bit]   \n\t"           // DATA LOW:  2 cycles = 250ns | ~400ns
-      ::
-      [port]  "I" (_SFR_IO_ADDR(PORTB)),
-      [bit]   "I" (NEO_PIN)
-    );
-  }
+  for(uint8_t bit=8; bit; bit--, byte<<=1) asm volatile (   // 8 bits, MSB first
+    "sbi  %[port], %[pin]   \n\t"             // DATA HIGH
+    "sbrs %[test], 7        \n\t"             // "0"-bit:
+    "cbi  %[port], %[pin]   \n\t"             // DATA LOW after 3 cycles = 375ns
+    "rjmp	.+0               \n\t"             // "1"-bit:
+    "cbi  %[port], %[pin]   \n\t"             // DATA LOW after 6 cycles = 750ns
+    ::
+    [port]  "I"   (_SFR_IO_ADDR(PORTB)),
+    [pin]   "I"   (NEO_PIN),
+    [test]  "w"   (byte)
+  );
 }
 
 // Switch off all pixels
