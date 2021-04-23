@@ -22,7 +22,7 @@ Fortunately, the timing is nowhere near as strict as the data sheet suggests. Th
 |T1L|"1"-Bit, LOW time|450 ns|600 ns|5000 ns|
 |TCT|Total Cycle Time|1150 ns|1250 ns|5500 ns|
 
-Assuming that the microcontroller runs with a clock frequency of 8 MHz, the following simple bit-banging function for the transmission of a data byte to the NeoPixels string was implemented:
+Apart from T0H, the maximum values can be even higher, depending on when the NeoPixels actually latch the sent data. Assuming that the microcontroller runs with a clock frequency of 8 MHz, the following simple bit-banging function for the transmission of a data byte to the NeoPixels string was implemented:
 
 ```c
 // Send a byte to the pixels string
