@@ -77,7 +77,7 @@ uint32_t timermillis  = 0;    // timer variable for auto switch off
 uint8_t  ldrmode      = 0;    // LDR mode flag: "1" = LDR mode on
 
 // -----------------------------------------------------------------------------
-// Neopixel Implementation for 8MHz MCU Clock and 800kHz Pixels)
+// Neopixel Implementation for 8MHz MCU Clock and 800kHz Pixels
 // -----------------------------------------------------------------------------
 
 #define NEO_PIXELS    4                       // number of pixels in the string
