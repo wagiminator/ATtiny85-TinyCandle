@@ -90,7 +90,7 @@ void NEO_sendByte(uint8_t byte) {
     "sbi  %[port], %[pin]   \n\t"             // DATA HIGH
     "sbrs %[test], 7        \n\t"             // "0"-bit:
     "cbi  %[port], %[pin]   \n\t"             // DATA LOW after 3 cycles = 375ns
-    "rjmp	.+0               \n\t"             // "1"-bit:
+    "rjmp .+0               \n\t"             // "1"-bit:
     "cbi  %[port], %[pin]   \n\t"             // DATA LOW after 6 cycles = 750ns
     ::
     [port]  "I"   (_SFR_IO_ADDR(PORTB)),
