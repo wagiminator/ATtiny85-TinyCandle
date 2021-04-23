@@ -89,7 +89,7 @@ void NEO_sendByte(uint8_t byte) {
   for(uint8_t bit=8; bit; bit--, byte<<=1) {  // 8 bits, MSB first
     if(byte & 0x80) asm volatile (            // "1"-bit ?
       "sbi  %[port], %[bit]   \n\t"           // DATA HIGH
-      "nop                    \n\t"           // delay:     2 cycles = 250ns |
+      "nop                    \n\t"           // delay:     1 cycle  = 125ns |
       "lpm                    \n\t"           // delay:     3 cycles = 375ns | ~800ns
       "cbi  %[port], %[bit]   \n\t"           // DATA LOW:  2 cycles = 250ns |
       ::
