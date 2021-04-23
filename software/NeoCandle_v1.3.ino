@@ -86,16 +86,20 @@ uint8_t  ldrmode      = 0;    // LDR mode flag: "1" = LDR mode on
 
 // Send a byte to the pixels string
 void NEO_sendByte(uint8_t byte) {
-  for(uint8_t bit=8; bit; bit--, byte<<=1) asm volatile (   // 8 bits, MSB first
+  uint8_t count = 8;                          // 8 bits, MSB first
+  asm volatile (
     "sbi  %[port], %[pin]   \n\t"             // DATA HIGH
-    "sbrs %[test], 7        \n\t"             // "0"-bit:
-    "cbi  %[port], %[pin]   \n\t"             // DATA LOW after 3 cycles = 375ns
-    "rjmp .+0               \n\t"             // "1"-bit:
-    "cbi  %[port], %[pin]   \n\t"             // DATA LOW after 6 cycles = 750ns
+    "sbrs %[byte], 7        \n\t"             // if "1"-bit skip next instruction
+    "cbi  %[port], %[pin]   \n\t"             // "0"-bit: DATA LOW after 3 cycles
+    "add  %[byte], %[byte]  \n\t"             // byte <<= 1
+    "subi %[bit],  0x01     \n\t"             // count--
+    "cbi  %[port], %[pin]   \n\t"             // "1"-bit: DATA LOW after 6 cycles
+    "brne .-14              \n\t"             // while(count)
     ::
     [port]  "I"   (_SFR_IO_ADDR(PORTB)),
     [pin]   "I"   (NEO_PIN),
-    [test]  "w"   (byte)
+    [byte]  "w"   (byte),
+    [bit]   "w"   (count)
   );
 }
 
