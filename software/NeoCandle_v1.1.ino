@@ -77,24 +77,20 @@ uint32_t timermillis  = 0;    // timer variable for auto switch off
 uint8_t  ldrmode      = 0;    // LDR mode flag: "1" = LDR mode on
 
 // -----------------------------------------------------------------------------
-// Neopixel Implementation (8MHz Clock, 400kHz Pixels) inspired by Josh Levine
+// Neopixel Implementation (8MHz Clock, 800kHz Pixels) inspired by Josh Levine
 // -----------------------------------------------------------------------------
 
 #define NEO_PIXELS    4                       // number of pixels in the string
-#define NEO_LATCH()   _delay_us(251)          // delay to show shifted colors
-
-// Initialize Neopixels
-void NEO_init(void) {
-  DDRB |= (1<<NEO_PIN);                       // set pixel DATA pin as output
-}
+#define NEO_init()    DDRB |= (1<<NEO_PIN)    // set pixel DATA pin as output
+#define NEO_latch()   _delay_us(251)          // delay to show shifted colors
 
 // Send a byte to the pixels string (DATA LOW is at least 900ns due to the loop)
 void NEO_sendByte(uint8_t byte) {
   for(uint8_t bit=8; bit; bit--, byte<<=1) {  // 8 bits, MSB first
     if(byte & 0x80) asm volatile (            // "1"-bit ?
       "sbi  %[port], %[bit]   \n\t"           // DATA HIGH
-      "sbi  %[port], %[bit]   \n\t"           // repeat:    2 cycles = 250ns |
-      "lpm                    \n\t"           // delay:     3 cycles = 375ns | ~900ns
+      "nop                    \n\t"           // delay:     2 cycles = 250ns |
+      "lpm                    \n\t"           // delay:     3 cycles = 375ns | ~800ns
       "cbi  %[port], %[bit]   \n\t"           // DATA LOW:  2 cycles = 250ns |
       ::
       [port]  "I" (_SFR_IO_ADDR(PORTB)),
@@ -116,7 +112,7 @@ void NEO_clear(void) {
   cli();
   for(uint8_t i = 3 * NEO_PIXELS; i; i--) NEO_sendByte(0);
   sei();
-  NEO_LATCH();
+  NEO_latch();
 }
 
 // -----------------------------------------------------------------------------
