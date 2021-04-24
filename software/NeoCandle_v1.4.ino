@@ -144,81 +144,74 @@ ISR(TIM0_COMPA_vect) {
 // -----------------------------------------------------------------------------
 
 // IR receiver definitions and macros
-#define IR_available()  (~PINB & (1<<IR_PIN))       // return true if IR line is low
-#define IR_TOP          ((F_CPU / 1000UL) * 15000UL) / 512000UL
-#define IR_9000us       ((F_CPU / 1000UL) *  9000UL) / 512000UL
-#define IR_4500us       ((F_CPU / 1000UL) *  4500UL) / 512000UL
-#define IR_1687us       ((F_CPU / 1000UL) *  1687UL) / 512000UL
-#define IR_562us        ((F_CPU / 1000UL) *   562UL) / 512000UL
+#define IR_available()  (~PINB & (1<<IR_PIN)) // return true if IR line is LOW
+#define IR_PRESCALER    512                   // prescaler of the timer
+#define IR_time(t)      ((F_CPU / 1000) * t) / IR_PRESCALER / 1000  // convert us to counts
+#define IR_TOP          IR_time(12000UL)      // TOP value of timer (timeout)
 
 // IR global variables
-volatile uint8_t IR_duration;             // for storing duration of last burst/pause
-volatile uint8_t IR_flag;                 // gets zero in pin change or time over
+volatile uint8_t IR_dur;                      // for storing duration of last burst/pause
+volatile uint8_t IR_flag;                     // gets zero in pin change or time over
 
 // IR initialize the receiver
 void IR_init(void) {
-  DDRB  &= ~(1<<IR_PIN);                  // IR pin as input
-  PCMSK |=  (1<<IR_PIN);                  // enable interrupt on IR pin
-  GIMSK |=  (1<<PCIE);                    // enable pin change interrupts
-  OCR1A  = IR_TOP;                        // timeout causes OCA interrupt
-  TCNT1  = 0;                             // reset timer1
-  TIMSK |= (1<<OCIE1A);                   // enable output compare match interrupt
+  DDRB  &= ~(1<<IR_PIN);                      // IR pin as input
+  PCMSK |=  (1<<IR_PIN);                      // enable interrupt on IR pin
+  GIMSK |=  (1<<PCIE);                        // enable pin change interrupts
+  OCR1A  = IR_TOP;                            // timeout causes OCA interrupt
+  TCNT1  = 0;                                 // reset timer1
+  TIMSK |= (1<<OCIE1A);                       // enable output compare match interrupt
 }
 
-// IR check if current signal length matches the desired duration
-uint8_t IR_checkDur(uint8_t dur) {
-  IR_flag = 1;
-  if(!IR_duration) return 0;
-  uint8_t error = dur >> 3; if (error < 6) error = 6;
-  if (IR_duration > dur) return ((IR_duration - dur) < error);
-  return ((dur - IR_duration) < error);
+// IR wait for signal change
+void IR_wait(void) {
+  IR_flag = 1;                                // reset flag
+  while(IR_flag);                             // wait for pin change or timeout
 }
 
 // IR read data according to NEC protocol
 uint8_t IR_read(void) {
-  uint32_t data;                                // variable for received data
-  uint16_t addr;                                // variable for received address
-  if (!IR_available()) return IR_FAIL;          // exit if no signal
-  IR_flag = 1;                                  // reset flag
-  while(IR_flag);                               // wait for end of start burst
-  if (!IR_checkDur(IR_9000us)) return IR_FAIL;  // exit if no start condition
-  while(IR_flag);                               // wait for end of start pause
-  if (!IR_checkDur(IR_4500us)) return IR_FAIL;  // exit if no start condition
-  for (uint8_t i=32; i; i--) {                  // receive 32 bits
-    data >>= 1;                                 // LSB first
-    while(IR_flag);                             // wait for end of burst
-    if (!IR_checkDur(IR_562us)) return IR_FAIL; // exit if burst has incorrect length
-    while(IR_flag);                             // wait for end of pause
-    if (IR_checkDur(IR_1687us)) data |= 0x80000000;   // bit "0" or "1" depends on pause duration
-    else if (!IR_checkDur(IR_562us)) return IR_FAIL;  // exit if it's neither "0" nor "1"
+  uint32_t data;                              // variable for received data
+  uint16_t addr;                              // variable for received address
+  if (!IR_available()) return IR_FAIL;        // exit if no signal
+  IR_wait();                                  // wait for end of start burst
+  if (IR_dur < IR_time(8000)) return IR_FAIL; // exit if no start condition
+  IR_wait();                                  // wait for end of start pause
+  if (IR_dur < IR_time(4000)) return IR_FAIL; // exit if no start condition
+  for (uint8_t i=32; i; i--) {                // receive 32 bits
+    data >>= 1;                               // LSB first
+    IR_wait();                                // wait for end of burst
+    if (!IR_dur) return IR_FAIL;              // exit if overflow
+    IR_wait();                                // wait for end of pause
+    if (!IR_dur) return IR_FAIL;              // exit if overflow
+    if (IR_dur > IR_time(1124)) data |= 0x80000000; // bit "0" or "1" depends on pause duration
   }
-  while(IR_flag);                               // wait for end of final burst
-  if (!IR_checkDur(IR_562us)) return IR_FAIL;   // exit if burst has incorrect length
-  uint8_t addr1 = data;                         // get first  address byte
-  uint8_t addr2 = data >> 8;                    // get second address byte
-  uint8_t cmd1  = data >> 16;                   // get first  command byte
-  uint8_t cmd2  = data >> 24;                   // get second command byte
-  if ((cmd1 + cmd2) < 255) return IR_FAIL;      // if second command byte is not the inverse of the first
-  if ((addr1 + addr2) == 255) addr = addr1;     // check if it's extended NEC-protocol ...
-  else addr = data;                             // ... and get the correct address
-  if (addr != IR_ADDR) return IR_FAIL;          // wrong address
-  return cmd1;                                  // return command code
+  IR_wait();                                  // wait for end of final burst
+  uint8_t addr1 = data;                       // get first  address byte
+  uint8_t addr2 = data >> 8;                  // get second address byte
+  uint8_t cmd1  = data >> 16;                 // get first  command byte
+  uint8_t cmd2  = data >> 24;                 // get second command byte
+  if ((cmd1 + cmd2) < 255) return IR_FAIL;    // if second command byte is not the inverse of the first
+  if ((addr1 + addr2) == 255) addr = addr1;   // check if it's extended NEC-protocol ...
+  else addr = data;                           // ... and get the correct address
+  if (addr != IR_ADDR) return IR_FAIL;        // wrong address
+  return cmd1;                                // return command code
 }
 
 // Pin change interrupt service routine
 ISR (PCINT0_vect) {
-  IR_duration = TCNT1;                    // save timer value
-  TCNT1   = 0;                            // reset timer1
-  TCCR1   = (1<<CS13)|(1<<CS11);          // start timer1 with prescaler 512
-  IR_flag = 0;                            // raise flag
+  IR_dur  = TCNT1;                            // save timer value
+  TCNT1   = 0;                                // reset timer1
+  TCCR1   = (1<<CS13)|(1<<CS11);              // start timer1 with prescaler 512
+  IR_flag = 0;                                // raise flag
 }
 
 // Timer1 compare match A interrupt service routine (timeout)
 ISR(TIM1_COMPA_vect) {
-  TCCR1   = 0;                            // stop timer1
-  TCNT1   = 0;                            // reset timer1
-  IR_flag = 0;                            // raise flag
-  IR_duration = 0;                        // set duration value to zero
+  TCCR1   = 0;                                // stop timer1
+  TCNT1   = 0;                                // reset timer1
+  IR_flag = 0;                                // raise flag
+  IR_dur  = 0;                                // set duration value to zero
 }
 
 // -----------------------------------------------------------------------------
