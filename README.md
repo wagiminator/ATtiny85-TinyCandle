@@ -84,7 +84,7 @@ uint16_t prng(uint16_t maxvalue) {
 ```
 
 ## IR Receiver Implementation
-The IR receiver implementation is based on [TinyDecoder](https://github.com/wagiminator/ATtiny13-TinyDecoder) and requires **236 bytes of flash**. Only the NEC protocol is supported, but this is used by almost all cheap IR remote controls. Alternatively, you can build such a remote control yourself with [TinyRemote](https://github.com/wagiminator/ATtiny13-TinyRemote). Don't forget to define the used IR codes in the sketch!
+The IR receiver implementation is based on [TinyDecoder](https://github.com/wagiminator/ATtiny13-TinyDecoder) and requires **234 bytes of flash**. Only the NEC protocol is supported, but this is used by almost all cheap IR remote controls. Alternatively, you can build such a remote control yourself with [TinyRemote](https://github.com/wagiminator/ATtiny13-TinyRemote). Don't forget to define the used IR codes in the sketch!
 
 ```c
 // IR codes

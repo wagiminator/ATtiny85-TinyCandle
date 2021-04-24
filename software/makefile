@@ -7,7 +7,7 @@
 # Type "make help" in the command line.
 
 # Input and Output File Names
-SKETCH  = NeoCandle_v1.4.ino
+SKETCH  = NeoCandle_v1.5.ino
 TARGET  = neocandle
 
 # Microcontroller Options

@@ -108,7 +108,6 @@ void NEO_clear(void) {
   cli();
   for(uint8_t i = 3 * NEO_PIXELS; i; i--) NEO_sendByte(0);
   sei();
-  NEO_latch();
 }
 
 // -----------------------------------------------------------------------------
@@ -155,11 +154,10 @@ volatile uint8_t IR_flag;                     // gets zero in pin change or time
 
 // IR initialize the receiver
 void IR_init(void) {
-  DDRB  &= ~(1<<IR_PIN);                      // IR pin as input
-  PCMSK |=  (1<<IR_PIN);                      // enable interrupt on IR pin
-  GIMSK |=  (1<<PCIE);                        // enable pin change interrupts
+  PORTB |= (1<<IR_PIN);                       // pullup on IR pin
+  PCMSK |= (1<<IR_PIN);                       // enable interrupt on IR pin
+  GIMSK |= (1<<PCIE);                         // enable pin change interrupts
   OCR1A  = IR_TOP;                            // timeout causes OCA interrupt
-  TCNT1  = 0;                                 // reset timer1
   TIMSK |= (1<<OCIE1A);                       // enable output compare match interrupt
 }
 
