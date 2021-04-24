@@ -8,7 +8,7 @@ NeoCandle is a simple tea light candle simulation using 5mm NeoPixels (WS2812), 
 
 # Software
 ## Candle Simulation
-The simulation code is based on the great work of [Mark Sherman](https://github.com/carangil/candle). With most LED candles, the random flickering is rather dumb and lacks the spooky element of candlelight: shadows cast by the candle move because the flame is in motion. With NeoCandle, four NeoPixels are arranged in a square, the intensity of the four LEDs forms a "center" of light balance that can be moved around smoothly.
+The simulation code is based on the great work of [Mark Sherman](https://github.com/carangil/candle). With most LED candles, the random flickering is rather silly and lacks the spooky element of candlelight: shadows cast by the candle move because the flame is in motion. With NeoCandle, four NeoPixels are arranged in a square, the intensity of the four LEDs forms a "center" of light balance that can be moved around smoothly.
 
 This 'physics-based' candlelight has the following properties:
 - The flame has a position and a velocity.
@@ -32,7 +32,7 @@ Fortunately, the timing is nowhere near as strict as the data sheet suggests. Th
 |T1L|"1"-Bit, LOW time|450 ns|600 ns|5000 ns|
 |TCT|Total Cycle Time|1150 ns|1250 ns|5500 ns|
 
-Apart from T0H, the maximum values can be even higher, depending on when the NeoPixels actually latch the sent data. Assuming that the microcontroller runs with a clock frequency of 8 MHz, the following simple bit-banging function for the transmission of a data byte to the NeoPixels string was implemented:
+Apart from T0H, the maximum values can be even higher, depending on when the NeoPixels actually latch the sent data. The software essentially only has to ensure that **T0H is a maximum of 500ns and T1H is at least 625ns**, so that the pixels can reliably differentiate "0" from "1". Assuming that the microcontroller runs with a clock frequency of 8 MHz, the following simple bit-banging function for the transmission of a data byte to the NeoPixels string was implemented:
 
 ```c
 // Send a byte to the pixels string
@@ -55,7 +55,7 @@ void NEO_sendByte(uint8_t byte) {
 }
 ```
 
-When compiled, the function for bit-banging a data byte requires only 18 bytes of flash. The resulting timing values are shown in the following table:
+When compiled, the function for bit-banging a data byte requires only **18 bytes of flash**. The resulting timing values are shown in the following table:
 
 |Pulse|Parameter|Clock Cycles|Time|
 |:-|:-|-:|-:|
@@ -65,12 +65,12 @@ When compiled, the function for bit-banging a data byte requires only 18 bytes o
 |T1L|"1"-Bit, LOW time|4 Cycles|500 ns|
 |TCT|Total Cycle Time|11/10 Cycles|1375/1250 ns|
 
-This results in a transfer rate of 762 kbps, at least for a single data byte. The implementation can certainly still be optimized in terms of speed, but this is more than sufficient for controlling only four NeoPixels.
+This results in a transfer rate of **762 kbps**, at least for a single data byte. The implementation can certainly still be optimized in terms of speed, but this is more than sufficient for controlling only four NeoPixels. Remember that **interrupts should be disabled** during transmission, otherwise the timing requirements cannot be met.
 
-There are three data bytes for each NeoPixel. These are transmitted in the order green, red and blue with the most significant bit first. The data for the NeoPixel, which is closest to the microcontroller, is output first, then for the next up to the outermost pixel. So this doesn't work like an ordinary shift register! After all color data have been sent, the data line must be kept LOW for at least 9 to 250 µs (depending on the type of NeoPixel) so that the transferred data is latched and the new colors are displayed.
+There are three data bytes for each NeoPixel. These are transmitted in the order green, red and blue (this can be different for other types of NeoPixels) with the most significant bit first. The data for the NeoPixel, which is closest to the microcontroller, is output first, then for the next up to the outermost pixel. So this doesn't work like an ordinary shift register! After all color data have been sent, the data line must be kept LOW for at least 9 to 250 µs (depending on the type of NeoPixel) so that the transferred data is latched and the new colors are displayed.
 
 ## Pseudo Random Number Generator
-The implementation of the candle simulation requires random numbers for a realistic flickering of the candle. However, the usual libraries for generating random numbers require a relatively large amount of memory. Fortunately, Łukasz Podkalicki has developed a [lightweight random number generator](https://blog.podkalicki.com/attiny13-pseudo-random-numbers/) based on [Galois linear feedback shift register](https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs) for the ATtiny13A, which is also used here, slightly adapted.
+The implementation of the candle simulation requires random numbers for a realistic flickering of the candle. However, the usual libraries for generating random numbers require a relatively large amount of memory. Fortunately, Łukasz Podkalicki has developed a [lightweight random number generator](https://blog.podkalicki.com/attiny13-pseudo-random-numbers/) based on [Galois linear feedback shift register](https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs) for the ATtiny13A, which is also used here, slightly adapted. When compiled, this function only requires **86 bytes of flash**.
 
 ```c
 // Start state (any nonzero value will work)
@@ -84,7 +84,7 @@ uint16_t prng(uint16_t maxvalue) {
 ```
 
 ## IR Receiver Implementation
-The IR receiver implementation is based on [TinyDecoder](https://github.com/wagiminator/ATtiny13-TinyDecoder). Only the NEC protocol is supported, but this is used by almost all cheap IR remote controls. Alternatively, you can build such a remote control yourself with [TinyRemote](https://github.com/wagiminator/ATtiny13-TinyRemote). Don't forget to define the used IR codes in the sketch!
+The IR receiver implementation is based on [TinyDecoder](https://github.com/wagiminator/ATtiny13-TinyDecoder) and requires **356 bytes of flash**. Only the NEC protocol is supported, but this is used by almost all cheap IR remote controls. Alternatively, you can build such a remote control yourself with [TinyRemote](https://github.com/wagiminator/ATtiny13-TinyRemote). Don't forget to define the used IR codes in the sketch!
 
 ```c
 // IR codes
