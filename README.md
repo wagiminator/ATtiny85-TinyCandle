@@ -65,7 +65,7 @@ When compiled, the function for bit-banging a data byte requires only **18 bytes
 |T1L|"1"-Bit, LOW time|4 Cycles|500 ns|
 |TCT|Total Cycle Time|11/10 Cycles|1375/1250 ns|
 
-This results in a transfer rate of **762 kbps**, at least for a single data byte. The implementation can certainly still be optimized in terms of speed, but this is more than sufficient for controlling only four NeoPixels. Remember that **interrupts should be disabled** during transmission, otherwise the timing requirements cannot be met.
+This results in a transfer rate of **762 kbps**, at least for a single data byte. The implementation can certainly still be optimized in terms of speed, but this is already close to the maximum and more than sufficient for controlling only four NeoPixels. Remember that **interrupts should be disabled** during transmission, otherwise the timing requirements cannot be met.
 
 There are three data bytes for each NeoPixel. These are transmitted in the order green, red and blue (this can be different for other types of NeoPixels) with the most significant bit first. The data for the NeoPixel, which is closest to the microcontroller, is output first, then for the next up to the outermost pixel. So this doesn't work like an ordinary shift register! After all color data have been sent, the data line must be kept LOW for at least 9 to 250 µs (depending on the type of NeoPixel) so that the transferred data is latched and the new colors are displayed.
 
