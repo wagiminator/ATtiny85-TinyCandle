@@ -1,5 +1,5 @@
 # NeoCandle - Candle Simulation based on ATtiny25/45/85
-NeoCandle is a simple tea light candle simulation using 5mm NeoPixels (WS2812), LDR light sensor (GL5528) and IR remote receiver (TSOP4856). It can be controlled by an IR remote control with two buttons and has a timer mode for automatic shutdown after a set time as well as an LDR mode in which the candle is automatically switched on and off depending on the intensity of the ambient light.
+NeoCandle is a simple tea light candle simulation using 5mm NeoPixels (WS2812), LDR light sensor (GL5528) and IR remote receiver (TSOP4838). It can be controlled by an IR remote control with two buttons and has a timer mode for automatic shutdown after a set time as well as an LDR mode in which the candle is automatically switched on and off depending on the intensity of the ambient light.
 
 - Project Video (YouTube): https://youtu.be/n4UFV3BMcBM
 - Design Files (EasyEDA): https://easyeda.com/wagiminator/attiny85-neocandle-dip
@@ -136,7 +136,7 @@ Open the NeoCandle Sketch and adjust the IR codes so that they match your remote
 # References, Links and Notes
 1. [ATtiny25/45/85 Datasheet](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-2586-AVR-8-bit-Microcontroller-ATtiny25-ATtiny45-ATtiny85_Datasheet.pdf)
 2. [WS2812 Datasheet](https://cdn-shop.adafruit.com/datasheets/WS2812.pdf)
-3. [TSOP4856 Datasheet](https://www.vishay.com/docs/82459/tsop48.pdf)
+3. [TSOP4838 Datasheet](https://www.vishay.com/docs/82459/tsop48.pdf)
 4. [GL5528 Datasheet](https://cdn.sparkfun.com/datasheets/Sensors/LightImaging/SEN-09088.pdf)
 5. [Josh Levine's Article about NeoPixels](https://wp.josh.com/2014/05/13/ws2812-neopixels-are-not-so-finicky-once-you-get-to-know-them/)
 6. [Tim's Article about NeoPixels](https://cpldcpu.wordpress.com/2014/01/14/light_ws2812-library-v2-0-part-i-understanding-the-ws2812/)
