@@ -32,7 +32,7 @@ Fortunately, the timing is nowhere near as strict as the data sheet suggests. Th
 |T1L|"1"-Bit, LOW time|450 ns|600 ns|5000 ns|
 |TCT|Total Cycle Time|1150 ns|1250 ns|5500 ns|
 
-Apart from T0H, the maximum values can be even higher, depending on when the NeoPixels actually latch the sent data. The software essentially only has to ensure that **T0H is a maximum of 500ns and T1H is at least 625ns**, so that the pixels can reliably differentiate "0" from "1". Assuming that the microcontroller runs with a clock frequency of 8 MHz, the following simple bit-banging function for the transmission of a data byte to the NeoPixels string was implemented:
+Apart from T0H, the maximum values can be even higher, depending on when the NeoPixels actually latch the sent data (with some types only after 250µs!). This also makes it possible to work without a buffer and thus without the use of SRAM. The software essentially only has to ensure that **T0H is a maximum of 500ns and T1H is at least 625ns**, so that the pixels can reliably differentiate "0" from "1". Assuming that the microcontroller runs with a clock frequency of 8 MHz, the following simple bit-banging function for the transmission of a data byte to the NeoPixels string was implemented:
 
 ```c
 // Send a byte to the pixels string
