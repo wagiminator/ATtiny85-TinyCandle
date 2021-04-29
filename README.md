@@ -22,15 +22,16 @@ The control of NeoPixels with 8-bit microcontrollers is usually done with softwa
 
 ![NeoCandle_timings.png](https://raw.githubusercontent.com/wagiminator/ATtiny85-TinyCandle/master/documentation/NeoCandle_timings.png)
 
-Fortunately, the timing is nowhere near as strict as the data sheet suggests. The following timing rules can be derived from the excellent articles by [Josh Levine](https://wp.josh.com/2014/05/13/ws2812-neopixels-are-not-so-finicky-once-you-get-to-know-them/) and [Tim](https://cpldcpu.wordpress.com/2014/01/14/light_ws2812-library-v2-0-part-i-understanding-the-ws2812/):
+Fortunately, the timing is nowhere near as strict as the data sheet suggests. The following timing rules can be derived from the excellent articles by [Josh Levine](https://wp.josh.com/2014/05/13/ws2812-neopixels-are-not-so-finicky-once-you-get-to-know-them/) and [Tim](https://cpldcpu.wordpress.com/2014/01/14/light_ws2812-library-v2-0-part-i-understanding-the-ws2812/) and should work with all 800kHz addressable LEDs:
 
 |Pulse|Parameter|Min|Typical|Max|
 |:-|:-|-:|-:|-:|
 |T0H|"0"-Bit, HIGH time|65 ns|350 ns|500 ns|
-|T1H|"1"-Bit, HIGH time|625 ns|700 ns|5000 ns|
-|T0L|"0"-Bit, LOW time|450 ns|800 ns|5000 ns|
-|T1L|"1"-Bit, LOW time|450 ns|600 ns|5000 ns|
-|TCT|Total Cycle Time|1150 ns|1250 ns|5500 ns|
+|T1H|"1"-Bit, HIGH time|625 ns|700 ns|8500 ns|
+|T0L|"0"-Bit, LOW time|450 ns|800 ns|8500 ns|
+|T1L|"1"-Bit, LOW time|450 ns|600 ns|8500 ns|
+|TCT|Total Cycle Time|1150 ns|1250 ns|9000 ns|
+|RES|Latch, LOW time|9 µs|50 µs|250 µs|
 
 Apart from T0H, the maximum values can be even higher, depending on when the NeoPixels actually latch the sent data (with some types only after 250µs!). This also makes it possible to work without a buffer and thus without the use of SRAM. The software essentially only has to ensure that **T0H is a maximum of 500ns and T1H is at least 625ns**, so that the pixels can reliably differentiate "0" from "1". Assuming that the microcontroller runs with a clock frequency of 8 MHz, the following simple bit-banging function for the transmission of a data byte to the NeoPixels string was implemented:
 
@@ -84,7 +85,17 @@ uint16_t prng(uint16_t maxvalue) {
 ```
 
 ## IR Receiver Implementation
-The IR receiver implementation is based on [TinyDecoder](https://github.com/wagiminator/ATtiny13-TinyDecoder) and requires **234 bytes of flash**. Only the NEC protocol is supported, but this is used by almost all cheap IR remote controls. Alternatively, you can build such a remote control yourself with [TinyRemote](https://github.com/wagiminator/ATtiny13-TinyRemote). Don't forget to define the used IR codes in the sketch!
+The IR receiver implementation is based on [TinyDecoder](https://github.com/wagiminator/ATtiny13-TinyDecoder) and requires **234 bytes of flash**. Only the NEC protocol is supported, but this is used by almost all cheap IR remote controls. Alternatively, you can build such a remote control yourself with [TinyRemote](https://github.com/wagiminator/ATtiny13-TinyRemote).
+
+The IR NEC decoding function utilizes timer0 to measure the burst and pause lengths of the signal. The timer is automatically started and stopped or reset by the IR receiver via a pin change interrupt. The measured lengths are interpreted according to the NEC protocol and the transmitted code is calculated accordingly. The program was tested with the TSOP4838, but it should also work with other 38kHz IR receivers (note different pinout if necessary).
+
+The output of the IR reciever is inverted (active LOW), a burst is indicated by a LOW signal, a pause by a HIGH signal. IR message starts with a 9ms leading burst followed by a 4.5ms pause. Afterwards 4 data bytes are transmitted, least significant bit first. A "0" bit is a 562.5µs burst followed by a 562.5µs pause, a "1" bit is a 562.5µs burst followed by a 1687.5µs pause. A final 562.5µs burst signifies the end of the transmission. According to the data sheet of the TSOP4838, the length of the output signal differs from the transmitted signal by up to 158 microseconds, which the code must take into account. The four data bytes are in order:
+- the 8-bit address for the receiving device,
+- the 8-bit logical inverse of the address,
+- the 8-bit key-dependend command and
+- the 8-bit logical inverse of the command.
+
+The Extended NEC protocol uses 16-bit addresses. Instead of sending an 8-bit address and its logically inverse, first the low byte and then the high byte of the address is transmitted. For a more detailed explanation on the NEC protocol refer to [TinyRemote](https://github.com/wagiminator/ATtiny13-TinyRemote). Don't forget to define the used IR codes in the sketch!
 
 ```c
 // IR codes
