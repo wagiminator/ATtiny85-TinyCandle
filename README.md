@@ -22,7 +22,7 @@ The control of NeoPixels with 8-bit microcontrollers is usually done with softwa
 
 ![NeoCandle_timings.png](https://raw.githubusercontent.com/wagiminator/ATtiny85-TinyCandle/master/documentation/NeoCandle_timings.png)
 
-Fortunately, the timing is nowhere near as strict as the data sheet suggests. The following timing rules can be derived from the excellent articles by [Josh Levine](https://wp.josh.com/2014/05/13/ws2812-neopixels-are-not-so-finicky-once-you-get-to-know-them/) and [Tim](https://cpldcpu.wordpress.com/2014/01/14/light_ws2812-library-v2-0-part-i-understanding-the-ws2812/) and should work with all 800kHz addressable LEDs:
+Fortunately, the timing is nowhere near as strict as the data sheet suggests. The following timing rules can be derived from the excellent articles by [Josh Levine](https://wp.josh.com/2014/05/13/ws2812-neopixels-are-not-so-finicky-once-you-get-to-know-them/) and [Tim](https://cpldcpu.wordpress.com/2014/01/14/light_ws2812-library-v2-0-part-i-understanding-the-ws2812/) and should **work with all 800kHz addressable LEDs**:
 
 |Pulse|Parameter|Min|Typical|Max|
 |:-|:-|-:|-:|-:|
@@ -31,22 +31,22 @@ Fortunately, the timing is nowhere near as strict as the data sheet suggests. Th
 |T0L|"0"-Bit, LOW time|450 ns|800 ns|8500 ns|
 |T1L|"1"-Bit, LOW time|450 ns|600 ns|8500 ns|
 |TCT|Total Cycle Time|1150 ns|1250 ns|9000 ns|
-|RES|Latch, LOW time|9 µs|50 µs|250 µs|
+|RES|Latch, LOW time|9 µs|50 µs|280 µs|
 
-Apart from T0H, the maximum values can be even higher, depending on when the NeoPixels actually latch the sent data (with some types only after 250µs!). This also makes it possible to work without a buffer and thus without the use of SRAM. The software essentially only has to ensure that **T0H is a maximum of 500ns and T1H is at least 625ns**, so that the pixels can reliably differentiate "0" from "1". Assuming that the microcontroller runs with a clock frequency of 8 MHz, the following simple bit-banging function for the transmission of a data byte to the NeoPixels string was implemented:
+Apart from T0H, the maximum values can be even higher, depending on when the NeoPixels actually latch the sent data (with some types only after 280µs!). This also makes it possible to work without a buffer and thus without the use of SRAM. The software essentially only has to ensure that **T0H is a maximum of 500ns and T1H is at least 625ns**, so that the pixels can reliably differentiate "0" from "1" and that the time between sending two bytes is less than the latch time. Assuming that the microcontroller runs with a clock frequency of 8 MHz, the following simple bit-banging function for the transmission of a data byte to the NeoPixels string was implemented:
 
 ```c
 // Send a byte to the pixels string
-void NEO_sendByte(uint8_t byte) {
-  uint8_t count = 8;                          // 8 bits, MSB first
+void NEO_sendByte(uint8_t byte) {       // CLK  comment
+  uint8_t count = 8;                    //      8 bits, MSB first
   asm volatile (
-    "sbi  %[port], %[pin]   \n\t"             // DATA HIGH
-    "sbrs %[byte], 7        \n\t"             // if "1"-bit skip next instruction
-    "cbi  %[port], %[pin]   \n\t"             // "0"-bit: DATA LOW after 3 cycles
-    "add  %[byte], %[byte]  \n\t"             // byte <<= 1
-    "subi %[bit],  0x01     \n\t"             // count--
-    "cbi  %[port], %[pin]   \n\t"             // "1"-bit: DATA LOW after 6 cycles
-    "brne .-14              \n\t"             // while(count)
+    "sbi  %[port], %[pin]   \n\t"       //  2   DATA HIGH
+    "sbrs %[byte], 7        \n\t"       // 1-2  if "1"-bit skip next instruction
+    "cbi  %[port], %[pin]   \n\t"       //  2   "0"-bit: DATA LOW after 3 cycles
+    "add  %[byte], %[byte]  \n\t"       //  1   byte <<= 1
+    "subi %[bit],  0x01     \n\t"       //  1   count--
+    "cbi  %[port], %[pin]   \n\t"       //  2   "1"-bit: DATA LOW after 6 cycles
+    "brne .-14              \n\t"       //  2   while(count)
     ::
     [port]  "I"   (_SFR_IO_ADDR(PORTB)),
     [pin]   "I"   (NEO_PIN),
@@ -68,7 +68,7 @@ When compiled, the function for bit-banging a data byte requires only **18 bytes
 
 This results in a transfer rate of **762 kbps**, at least for a single data byte. The implementation can certainly still be optimized in terms of speed, but this is already close to the maximum and more than sufficient for controlling only four NeoPixels. Remember that **interrupts should be disabled** during transmission, otherwise the timing requirements cannot be met.
 
-There are three data bytes for each NeoPixel. These are transmitted in the order green, red and blue (this can be different for other types of NeoPixels) with the most significant bit first. The data for the NeoPixel, which is closest to the microcontroller, is output first, then for the next up to the outermost pixel. So this doesn't work like an ordinary shift register! After all color data have been sent, the data line must be kept LOW for at least 9 to 250 µs (depending on the type of NeoPixel) so that the transferred data is latched and the new colors are displayed.
+There are three data bytes for each NeoPixel. These are transmitted in the order green, red and blue (this can be different for other types of NeoPixels) with the most significant bit first. The data for the NeoPixel, which is closest to the microcontroller, is output first, then for the next up to the outermost pixel. So this doesn't work like an ordinary shift register! After all color data have been sent, the data line must be kept LOW for at least 9 to 280 µs (depending on the type of NeoPixel) so that the transferred data is latched and the new colors are displayed.
 
 ## Pseudo Random Number Generator
 The implementation of the candle simulation requires random numbers for a realistic flickering of the candle. However, the usual libraries for generating random numbers require a relatively large amount of memory. Fortunately, Łukasz Podkalicki has developed a [lightweight random number generator](https://blog.podkalicki.com/attiny13-pseudo-random-numbers/) based on [Galois linear feedback shift register](https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs) for the ATtiny13A, which is also used here, slightly adapted. When compiled, this function only requires **86 bytes of flash**.
