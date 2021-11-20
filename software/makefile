@@ -1,13 +1,13 @@
 # Project:  NeoCandle
 # Author:   Stefan Wagner
 # Year:     2019 - 2021
-# URL:      https://easyeda.com/wagiminator
-#           https://github.com/wagiminator
+# URL:      https://github.com/wagiminator
+#           
 #
 # Type "make help" in the command line.
 
 # Input and Output File Names
-SKETCH  = NeoCandle_v1.5.ino
+SKETCH  = NeoCandle.ino
 TARGET  = neocandle
 
 # Microcontroller Options
