@@ -136,7 +136,7 @@ Open the NeoCandle Sketch and adjust the IR codes so that they match your remote
 - Connect your programmer to your PC and to the ICSP header on the board.
 - Open a terminal.
 - Navigate to the folder with the makefile and the Arduino sketch.
-- Run "DEVICE=attiny85 PROGRMR=usbasp make install" to compile, burn the fuses and upload the firmware (change DEVICE and PROGRMR accordingly).
+- Run `DEVICE=attiny85 PROGRMR=usbasp make install` to compile, burn the fuses and upload the firmware (change DEVICE and PROGRMR accordingly).
 
 # Operating Instructions
 - Connect a 5V power supply to the Micro-USB socket or a battery to the respective board header.
